@@ -1846,6 +1846,26 @@ func TestSkipClean(t *testing.T) {
 		t.Errorf("Shouldn't redirect since skip clean is disabled")
 	}
 }
+func TestSkipCleanWithEscapeCodes(t *testing.T) {
+	func1 := func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) }
+	func2 := func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) }
+
+	r := NewRouter()
+	r.SkipClean(true)
+	r.HandleFunc("/api/{arg}/", func2).Name("func2")
+	r.HandleFunc("/", func1).Name("func1")
+
+	req, _ := http.NewRequest("GET", "http://localhost/api/foo%2Fbar/", nil)
+	res := NewRecorder()
+	r.ServeHTTP(res, req)
+
+	if res.Code != http.StatusOK {
+		t.Errorf("Shouldn't return an error with escaped slash is in path, got %d", res.Code)
+	}
+	if len(res.HeaderMap["Location"]) != 0 {
+		t.Errorf("Shouldn't redirect since skip clean is disabled")
+	}
+}
 
 // https://plus.google.com/101022900381697718949/posts/eWy6DjFJ6uW
 func TestSubrouterHeader(t *testing.T) {
